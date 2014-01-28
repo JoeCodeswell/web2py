@@ -1,0 +1,140 @@
+#! /usr/bin/env python
+# -*- coding: UTF-8 -*-
+'''makePagesNactions4MenuTitles.py creates 
+    - Associated Controller Actions and
+    - HTML View Pages  
+    for each: 
+        Menu Item Title of the Input <Application Name>   
+        
+Output:
+    In <path to makePagesNactions4MenuTitles.py> 
+        1. A directory named 'outdir' is created
+        2. In 'outdir'
+            2.1 A file named controller.py is created.
+                This contains Menu Associated Controller Actions to be copied into your Application's Controller File of choice.
+                N.B. Home menu item WILL NOT MATCH index action
+            2.2 A directory named 'viewfiles' inside of which are
+                a set of Menu Associated HTML View Page files are created. These 
+                files are to be copied into your Application's 'views' Subdirectory of choice.
+        
+Usage: This program must be run from the web2py Interactive Command Shell Interpreter:
+    Open a command window for your system [Windows, Mac or NIX]
+    $ cd <web2py install dir>
+    $ python web2py.py -S <Application Name> -M
+    >>> import os
+    >>> os.chdir(r"<path to makePagesNactions4MenuTitles.py>")        
+    >>> execfile('makePagesNactions4MenuTitles.py')
+
+License:
+from http://wiki.civiccommons.org/Choosing_a_License
+and http://opensource.org/licenses/MIT
+
+The MIT License (MIT)
+
+Copyright (c) 2014 Joseph P. Dorocak aka Joe Codeswell
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+
+
+'''
+import sys
+
+def makePagesNactions4MenuTitles():
+    makeOutputDirsIfRequired()
+    menuTitleList = getTitlesFromMenu(response.menu)
+    print '\n'.join(menuTitleList)
+    menuTitleList = getTitlesFromMenu(response.menu)
+    makeActions4menuTitles(menuTitleList)
+    makePages4menuTitles(menuTitleList)
+
+def makeOutputDirsIfRequired():
+    '''make the Output Dirs If Non Existent'''
+    if not os.path.isdir('outdir'): os.mkdir('outdir')
+    if not os.path.isdir(os.path.join('outdir','viewfiles')): os.mkdir(os.path.join('outdir','viewfiles'))   
+    
+def getTitlesFromMenu(menu):
+    menuTitleList = []
+    tt = TreeTrav(menu, menuTitleList)
+    menuTitleList = tt.recursiveTreeProperties(menu)
+    return menuTitleList
+    
+def makeActions4menuTitles(menuTitleList):
+    resStr = ''
+    for item in menuTitleList:
+        resStr = ''.join([resStr, 'def %s(): response.flash = T("OurSite - %s"); return dict()\n'%(item.lower().replace(' ', '_'),item)])
+        f = open(os.path.join('outdir','controller.py'), 'w'); f.write(resStr); f.close()    
+        
+    
+pageTemplate = '''{{response.title = "%s"}}
+{{extend 'joe_layout.html'}}
+<h2>Welcome to OurSite %s</h2>
+<b>Information about %s.</b>
+<p>%s ipsum dolor sit amet, consectetuer adipiscing elit, sed diam nonummy nibh euismod tincidunt ut laoreet dolore magna aliquam erat volutpat. Ut wisi enim ad minim veniam, quis nostrud exerci tation ullamcorper suscipit lobortis nisl ut aliquip ex ea commodo consequat. Duis autem vel eum iriure dolor in hendrerit in vulputate velit esse molestie consequat, vel illum dolore eu feugiat nulla facilisis at vero eros et accumsan et iusto odio dignissim qui blandit praesent luptatum zzril delenit augue duis dolore te feugait nulla facilisi. Nam liber tempor cum soluta nobis eleifend option congue nihil imperdiet doming id quod mazim placerat facer possim assum. Typi non habent claritatem insitam; est usus legentis in iis qui facit eorum claritatem. Investigationes demonstraverunt lectores legere me lius quod ii legunt saepius. </p>
+{{#=BEAUTIFY(response._vars)}}
+'''
+# N.B. Home menu item WILL NOT MATCH index action
+    
+def makePages4menuTitles(menuTitleList): 
+    for item in menuTitleList:
+        pageContent =  pageTemplate%(item,item,item,item)
+        outFileName = item.lower().replace(' ', '_')+'.html'
+        f = open(os.path.join('outdir','viewfiles',outFileName), 'w'); f.write(pageContent); f.close()    
+          
+#<testTreeTravJoe.py>    
+class TreeTrav:
+    def __init__(self, treeContainerNode, resultList):
+        self.treeContainerNode = treeContainerNode
+        self.resultList = resultList
+ 
+    def isLeafNode(self, node):      # the test for web2[y menus
+        isLeaf = node[3] == []
+        return isLeaf
+
+    def processNode(self, node):
+        #print 'processNode          (node[0]:%s, node[1]:%s, node[2]:%s, isLeafNode(node):%s'%(node[0],node[1],node[2],isLeafNode(node))  
+        pass
+
+    def processLeaf(self, node):
+        #print 'processLeaf          (node[0]:%s, node[1]:%s, node[2]:%s, isLeafNode(node):%s'%(node[0],node[1],node[2],isLeafNode(node))  
+        self.resultList.append(node[0])
+        
+    def processContainerNode(self, node):
+        #print 'processContainerNode (node[0]:%s, node[1]:%s, node[2]:%s, isLeafNode(node):%s'%(node[0],node[1],node[2],isLeafNode(node))  
+        self.resultList.append(node[0])
+        
+    def recursiveTreeProperties(self, treeContainerNode):
+        for node in treeContainerNode:                    # node is a containerNode or leafNode
+            self.processNode(node)
+            if self.isLeafNode(node):
+                self.processLeaf(node)                    # node is a leafNode
+            else:                             
+                self.processContainerNode(node)           # node is a containerNode     
+                self.recursiveTreeProperties(node[3])     # recursive call: node is a tree ie it has submembers
+                
+        return self.resultList
+        
+#</testTreeTravJoe.py>   
+    
+def main():
+    makePagesNactions4MenuTitles()
+
+if __name__ == '__main__':
+    main()
+    
+    
